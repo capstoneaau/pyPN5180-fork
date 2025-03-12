@@ -1,4 +1,4 @@
-from PN5180 import ISO15693
+from PN5180.ISO15693 import ISO15693
 import sys
 import time
 

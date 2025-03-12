@@ -1,5 +1,5 @@
-from PN5180 import ISO14443
 import sys
+from PN5180.ISO14443 import ISO14443
 import time
 
 
