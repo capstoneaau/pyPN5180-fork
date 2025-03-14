@@ -50,7 +50,7 @@ class ISO14443(AbstractPN5180):
 		# https://www.nxp.com/docs/en/application-note/AN12650.pdf
 		# https://www.nxp.com/docs/en/application-note/AN10834.pdf
 		self._send([PN5180_LOAD_RF_CONFIG, 0x00, 0x80])  # Loads the ISO 14443 - 106 protocol into the RF registers
-		self._send([PN5180_RF_ON, 0x00])  # Switches the RF field ON.
+		self.rf_on()
 		self.disable_crc()
 		self._send([PN5180_WRITE_REGISTER, IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
@@ -72,6 +72,6 @@ class ISO14443(AbstractPN5180):
 			#uid_buffer = self._read(self._bytes_in_card_buffer)  # We shall read the buffer from SPI MISO -  Everything in the reception buffer shall be saved into the UIDbuffer array.
 			#self._log(uid_buffer)
 
-		self._send([0x17, 0x00])  # Switch OFF RF field
+		self.rf_off()
 		#GPIO.output(16, GPIO.HIGH)
 		return uids

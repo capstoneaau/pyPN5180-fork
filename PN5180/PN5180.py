@@ -113,6 +113,12 @@ class AbstractPN5180(ABC):
 	def enable_crc(self):
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_TX_CONFIG, 0x01])  #Switches the CRC extension on in Tx direction
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_RX_CONFIG, 0x01])  #Switches the CRC extension on in Rx direction
+	
+	def rf_on(self):
+		self._send([PN5180_RF_ON, 0x00])  # Switches the RF field ON.
+	
+	def rf_off(self):
+		self._send([PN5180_RF_OFF, 0x00])  # Switch OFF RF field
 
 
 

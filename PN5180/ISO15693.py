@@ -16,7 +16,7 @@ class ISO15693(AbstractPN5180):
 		uids = []
 		# https://www.nxp.com/docs/en/application-note/AN12650.pdf
 		self._send([PN5180_LOAD_RF_CONFIG, 0x0D, 0x8D])  # Loads the ISO 15693 protocol into the RF registers
-		self._send([PN5180_RF_ON, 0x00])  # Switches the RF field ON.
+		self.rf_on()
 		self._send([PN5180_WRITE_REGISTER, IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
 		self._send([PN5180_WRITE_REGISTER_OR_MASK, SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
@@ -36,7 +36,7 @@ class ISO15693(AbstractPN5180):
 			self._send([PN5180_WRITE_REGISTER_OR_MASK, SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
 			self._send([PN5180_WRITE_REGISTER, IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
 			self._send([PN5180_SEND_DATA, 0x00])  # Send EOF
-		self._send([PN5180_RF_OFF, 0x00])  # Switch OFF RF field
+		self.rf_off()
 		#GPIO.output(16, GPIO.HIGH)
 		return uids
 		
