@@ -105,6 +105,15 @@ class AbstractPN5180(ABC):
 			return cards
 		else:
 			return [self._format_uid(card) for card in cards]
+	
+	def disable_crc(self):
+			self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_TX_CONFIG, 0xFE, 0xFF, 0xFF, 0xFF])  #Switches the CRC extension off in Tx direction
+			self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_RX_CONFIG, 0xFE, 0xFF, 0xFF, 0xFF])  #Switches the CRC extension off in Rx direction
+	
+	def enable_crc(self):
+		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_TX_CONFIG, 0x01])  #Switches the CRC extension on in Tx direction
+		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_RX_CONFIG, 0x01])  #Switches the CRC extension on in Rx direction
+
 
 
 

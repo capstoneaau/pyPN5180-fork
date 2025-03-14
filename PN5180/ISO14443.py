@@ -7,8 +7,7 @@ class ISO14443(AbstractPN5180):
 		super().__init__(bus, device, debug)
 
 	def _anticollision(self, cascade_level=0x93, uid_cln=[], uid=[]):
-		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_TX_CONFIG, 0xFE, 0xFF, 0xFF, 0xFF])  #Switches the CRC extension off in Tx direction
-		self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_RX_CONFIG, 0xFE, 0xFF, 0xFF, 0xFF])  #Switches the CRC extension off in Rx direction
+		self.disable_crc()
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
 		self._send([PN5180_WRITE_REGISTER_OR_MASK, SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
 		self._send([PN5180_WRITE_REGISTER, IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
@@ -22,8 +21,7 @@ class ISO14443(AbstractPN5180):
 				self._log(f"Collision Occurred at position: {self._collision_position}")
 			else:
 				# No collision occurred
-				self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_TX_CONFIG, 0x01])  #Switches the CRC extension on in Tx direction
-				self._send([PN5180_WRITE_REGISTER_AND_MASK, CRC_RX_CONFIG, 0x01])  #Switches the CRC extension on in Rx direction
+				self.enable_crc()
 				self._send([PN5180_WRITE_REGISTER_AND_MASK, SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF])  # Sets the PN5180 into IDLE state
 				self._send([PN5180_WRITE_REGISTER_OR_MASK, SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00])  # Activates TRANSCEIVE routine
 				self._send([PN5180_WRITE_REGISTER, IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00])  # Clears the interrupt register IRQ_STATUS
