@@ -5,6 +5,29 @@ from PN5180.definitions import *
 class ISO14443(AbstractPN5180):
 	def __init__(self, bus: int = 0, device: int = 0, debug=False):
 		super().__init__(bus, device, debug)
+		self.rf_on()
+		print(self.get_irq_status())
+	
+	def activate_type_A(self, kind: ISO14443InitCommand):
+		self._send([PN5180_LOAD_RF_CONFIG, 0x00, 0x80])  # Loads the ISO 14443 - 106 protocol into the RF registers
+		self.disable_crypto()
+		self.disable_crc()
+		self.clear_IRQ_STATUS()  # Clears the interrupt register IRQ_STATUS
+
+		#Send REQA/WUPA
+		self.send_data([kind.value], 0x07)
+
+		buff = self.read_data(2)
+		print(buff)
+		
+		print(self.get_irq_status())
+
+		self.disable_crc()
+
+		self.send_data([0x93, 0x20], 0x00)
+
+		print(self.read_data(5))
+
 
 	def _anticollision(self, cascade_level=0x93, uid_cln=[], uid=[]):
 		self.disable_crc()
@@ -72,6 +95,5 @@ class ISO14443(AbstractPN5180):
 			#uid_buffer = self._read(self._bytes_in_card_buffer)  # We shall read the buffer from SPI MISO -  Everything in the reception buffer shall be saved into the UIDbuffer array.
 			#self._log(uid_buffer)
 
-		self.rf_off()
 		#GPIO.output(16, GPIO.HIGH)
 		return uids

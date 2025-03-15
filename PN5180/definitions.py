@@ -37,3 +37,23 @@ PRODUCT_VERSION     = 0x10
 FIRMWARE_VERSION    = 0x12
 EEPROM_VERSION      = 0x14
 IRQ_PIN_CONFIG      = 0x1A
+
+# Raspberry Pi Pins
+GPIO_BUSY = 25
+GPIO_NSS = 8
+GPIO_RST = 7
+
+from enum import Enum
+class ISO14443InitCommand(Enum):
+    REQA = 0x26
+    WupA = 0x52
+
+class PN5180TransceiveStat(Enum):
+    PN5180_TS_Idle = 0
+    PN5180_TS_WaitTransmit = 1
+    PN5180_TS_Transmitting = 2
+    PN5180_TS_WaitReceive = 3
+    PN5180_TS_WaitForData = 4
+    PN5180_TS_Receiving = 5
+    PN5180_TS_LoopBack = 6
+    PN5180_TS_RESERVED = 7
