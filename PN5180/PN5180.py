@@ -85,13 +85,13 @@ class AbstractPN5180(ABC):
 			return True
 		return False
 
-	@abstractmethod
-	def _inventory(self):
-		"""
-		Return UID when detected
-		:return:
-		"""
-		raise NotImplementedError("Method needs to be subclassed for each protocol.")
+	#@abstractmethod
+	#def _inventory(self):
+	#	"""
+	#	Return UID when detected
+	#	:return:
+	#	"""
+	#	raise NotImplementedError("Method needs to be subclassed for each protocol.")
 
 	@staticmethod
 	def _format_uid(uid, reverse=False):
@@ -143,10 +143,7 @@ class AbstractPN5180(ABC):
 		
 		GPIO.output(GPIO_NSS, GPIO.LOW)
 		time.sleep(0.002)
-		#for i in range(0, receive_buffer_len):
-		#	received = self._spi.xfer2([0xFF])[0]
-		#	self._log("Received Frame: ", received)
-		#	receive_buffer.append(received)
+
 		send_mask = []
 		for i in range(0,receive_buffer_len):
 			send_mask.append(0xFF)
@@ -195,6 +192,9 @@ class AbstractPN5180(ABC):
 			'''TODO: check if the lack of support still applies.'''
 			raise Exception("Reading data of length that's greater than 508 is not supported")
 		return self.transcieve_command([PN5180_READ_DATA, 0x00], expected_length)
+
+	def load_rf_config(self, tx_conf, rx_conf):
+		self.transcieve_command([PN5180_LOAD_RF_CONFIG, tx_conf, rx_conf])
 
 	def get_irq_status(self) -> int:
 		irq_status = self.read_register(IRQ_STATUS)
