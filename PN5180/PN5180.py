@@ -107,22 +107,6 @@ class AbstractPN5180(ABC):
 		# print(f"UID: {uid_readable}")
 		return uid_readable
 
-	def inventory(self, raw=False):
-		"""
-		Send inventory command for initialized protocol, returns a list of cards detected.
-		'raw' parameter can be set to False to return the unstructured UID response from the card.
-		:param raw:
-		:return:
-		"""
-		cards = self._inventory()
-		# print(f"{len(cards)} card(s) detected: {' - '.join([self._format_uid(card) for card in cards])}")
-		if raw:
-			return cards
-		else:
-			return [self._format_uid(card) for card in cards]
-
-
-
 	def transcieve_command(self, send_data: list, receive_buffer_len = 0) -> list:
 		receive_buffer = []
 
