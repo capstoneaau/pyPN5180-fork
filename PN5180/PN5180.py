@@ -113,7 +113,7 @@ class AbstractPN5180(ABC):
 		self._wait_ready()
 		GPIO.output(GPIO_NSS, GPIO.LOW)
 		time.sleep(0.002)
-		self._spi.xfer(send_data)
+		self._spi.xfer2(send_data)
 		self._log("Sent Frame: ", self._log_format_hex(send_data))
 		self._wait_ready(low=False)
 		GPIO.output(GPIO_NSS, GPIO.HIGH)
