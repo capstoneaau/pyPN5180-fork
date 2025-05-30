@@ -188,12 +188,12 @@ class AbstractPN5180(ABC):
 	def write_register_with_or_mask(self, reg: int, mask: int):
 		p = mask.to_bytes(4, byteorder='little')
 		buf = bytearray([PN5180_WRITE_REGISTER_OR_MASK, reg]) + p
-		self.transcieve_command(buf)
+		self.transcieve_command(list(buf))
 	
 	def write_register_with_and_mask(self, reg: int, mask: int):
 		p = mask.to_bytes(4, byteorder='little')
 		buf = bytearray([PN5180_WRITE_REGISTER_AND_MASK, reg]) + p
-		self.transcieve_command(buf)
+		self.transcieve_command(list(buf))
 
 	def disable_crypto(self):
 		self._send([PN5180_WRITE_REGISTER_AND_MASK, SYSTEM_CONFIG, 0xBF, 0xFF, 0xFF, 0xFF])
