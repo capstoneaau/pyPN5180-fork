@@ -7,7 +7,7 @@ class ISO14443(AbstractPN5180):
 		super().__init__(bus, device, debug)
 		self.load_rf_config(0x00, 0x80) # Load IS014443 RF config
 		self.rf_on()
-		print(self.get_irq_status())
+		#print(self.get_irq_status())
 	
 	def activate_type_a(self, kind: ISO14443InitCommand) -> dict:
 		"""
@@ -27,9 +27,10 @@ class ISO14443(AbstractPN5180):
 		self.send_data([kind.value], 0x07)
 
 		buff = self.read_data(2)
-		print(buff)
+		#print(buff)
 		
-		print(self.get_irq_status())
+		#print(self.get_irq_status())
+		#self.get_irq_status()
 
 		self.disable_crc()
 
@@ -43,8 +44,8 @@ class ISO14443(AbstractPN5180):
 		self.send_data([0x93, 0x70]+buff2,0x00)
 
 		buff = buff + self.read_data(1)
-		print(buff)
-		print(buff2)
+		#print(buff)
+		#print(buff2)
 
 		if (buff[2] & 0x04) == 0:
 			buff = buff + buff2
@@ -53,13 +54,15 @@ class ISO14443(AbstractPN5180):
 			if buff2[0] != 0x88:
 				raise Exception("err comparing uid buffer")
 			buff = buff + buff2[1:]
-			self.write_register_with_and_mask(CRC_RX_CONFIG, 0xFFFFFFFE)
-			self.write_register_with_and_mask(CRC_TX_CONFIG, 0xFFFFFFFE)
+			#self.write_register_with_and_mask(CRC_RX_CONFIG, 0xFFFFFFFE)
+			#self.write_register_with_and_mask(CRC_TX_CONFIG, 0xFFFFFFFE)
+			self.disable_crc()
 			self.send_data([0x95, 0x20], 0x00)
 			buff3 = self.read_data(5)
 			buff3 = buff3 + buff
-			self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
-			self.write_register_with_or_mask(CRC_TX_CONFIG, 0x01)
+			#self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
+			#self.write_register_with_or_mask(CRC_TX_CONFIG, 0x01)
+			self.enable_crc()
 			self.send_data([0x95, 0x70]+buff3,0x00)
 			sak = self.read_data(1)
 			uid_length = 7
@@ -75,9 +78,13 @@ class ISO14443(AbstractPN5180):
 		length = rx_status & 0x000001ff
 		return length
 
-	def mifare_authenticate(self, key, key_type, blockno, uid) -> int:
-
-		return 0x0
+	def mifare_authenticate(self, blockno) -> int:
+		card = self.activate_type_a(ISO14443InitCommand.WupA)
+		result = self.transcieve_command([PN5180_MIFARE_AUTHENTICATE]+[0xFF,0xFF,0xFF,0xFF,0xFF,0xFF]+[0x61]+[blockno]+card["uid"], 1)
+		#print(x)
+		#print(self.read_data(1))
+		#self.enable_crc()
+		return result[0]
 
 	def mifare_block_read(self, blockno: int) -> list:
 		"""

@@ -14,6 +14,7 @@ PN5180_SWITCH_MODE              = 0x0B
 PN5180_LOAD_RF_CONFIG           = 0x11
 PN5180_RF_ON                    = 0x16
 PN5180_RF_OFF                   = 0x17
+PN5180_MIFARE_AUTHENTICATE      = 0x0C
 
 # PN5180 Registers
 SYSTEM_CONFIG       = 0x00

@@ -9,7 +9,7 @@ from .definitions import *
 
 class AbstractPN5180(ABC):
 	def __init__(self, bus: int = 0, device: int = 0, debug=False):
-		GPIO.cleanup()
+		#GPIO.cleanup()
 
 		self._spi = spidev.SpiDev()
 		self._spi.open(bus, device)
@@ -112,12 +112,12 @@ class AbstractPN5180(ABC):
 
 		self._wait_ready()
 		GPIO.output(GPIO_NSS, GPIO.LOW)
-		time.sleep(0.002)
+		time.sleep(0.02)
+		self._log("Sent Frame(tc): ", self._log_format_hex(send_data))
 		self._spi.xfer2(send_data)
-		self._log("Sent Frame: ", self._log_format_hex(send_data))
-		self._wait_ready(low=False)
+		self._wait_ready()
 		GPIO.output(GPIO_NSS, GPIO.HIGH)
-		time.sleep(0.001)
+		time.sleep(0.01)
 		self._wait_ready()
 
 		if receive_buffer_len == 0: #Don't proceed with read
@@ -126,16 +126,16 @@ class AbstractPN5180(ABC):
 		self._log("Receiving SPI Frame")
 		
 		GPIO.output(GPIO_NSS, GPIO.LOW)
-		time.sleep(0.002)
+		time.sleep(0.02)
 
 		send_mask = []
 		for i in range(0,receive_buffer_len):
 			send_mask.append(0xFF)
 		receive_buffer = self._spi.xfer2(send_mask)
 		self._log("Received: ", receive_buffer)
-		self._wait_ready(low=False)	
+		self._wait_ready()	
 		GPIO.output(GPIO_NSS, GPIO.HIGH)
-		time.sleep(0.001)
+		time.sleep(0.01)
 		self._wait_ready()
 
 		return receive_buffer
