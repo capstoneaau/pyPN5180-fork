@@ -9,7 +9,7 @@ class ISO14443(AbstractPN5180):
 		self.rf_on()
 		print(self.get_irq_status())
 	
-	def activate_type_A(self, kind: ISO14443InitCommand) -> int:
+	def activate_type_a(self, kind: ISO14443InitCommand) -> int:
 		'''
 		Determines length of UID (currently only 4 and 7 byte UIDs are supported)
 		TODO:
@@ -63,3 +63,141 @@ class ISO14443(AbstractPN5180):
 
 		print(uid_length)
 		return(uid_length)
+
+	def rx_bytes_received(self) -> int:
+		"""
+		Returns the number of bytes received from the card
+		"""
+		rx_status = self.read_register(RX_STATUS)
+		# Lower 9 bits contain the length
+		length = rx_status & 0x000001ff
+		return length
+
+	def mifare_block_read(self, blockno: int) -> list:
+		"""
+		Read a 16-byte block from a Mifare card
+		Returns the 16 bytes read from the block, or None if failed
+		"""
+		# Send mifare read command (0x30) with block number
+		self.send_data([0x30, blockno], 0x00)
+
+		# Wait a bit for the card to respond
+		time.sleep(0.005)
+		
+		# Check if we received data
+		length = self.rx_bytes_received()
+		if length == 16:
+			# Read 16 bytes
+			data = self.read_data(16)
+			return data
+		
+		return None
+
+	def mifare_block_write16(self, blockno: int, data: list) -> int:
+		"""
+		Write 16 bytes to a Mifare block
+		Returns the ACK/NAK byte from the card
+		"""
+		if len(data) != 16:
+			raise ValueError("Data must be exactly 16 bytes")
+		
+		# Clear RX CRC for the write operation
+		self.write_register_with_and_mask(CRC_RX_CONFIG, 0xFFFFFFFE)
+		
+		# Mifare write part 1 - send write command
+		self.send_data([0xA0, blockno], 0x00)
+		ack1 = self.read_data(1)
+		
+		# Mifare write part 2 - send the actual data
+		self.send_data(data, 0x00)
+		time.sleep(0.010)  # Wait 10ms
+		
+		# Read ACK/NAK
+		ack2 = self.read_data(1)
+		
+		# Re-enable RX CRC calculation
+		self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
+		
+		return ack2[0] if ack2 else 0
+
+	def mifare_halt(self) -> bool:
+		"""
+		Send halt command to the Mifare card
+		"""
+		# Send Mifare halt command
+		self.send_data([0x50, 0x00], 0x00)
+		return True
+
+	def read_card_serial(self) -> tuple:
+		"""
+		Read card serial (UID) using WUPA command
+		Returns tuple: (uid_bytes, uid_length) or (None, 0) if no valid card
+		"""
+		# Use WUPA (wake up) command
+		uid_length = self.activate_type_a(ISO14443InitCommand.WupA)
+		
+		if uid_length == 0:
+			return (None, 0)
+		
+		# For this implementation, we'll need to extract the UID from the activation process
+		# Since the existing activate_type_a doesn't return the actual UID bytes,
+		# we'll need to re-implement the activation to capture the UID
+		self.mifare_halt()
+		
+		response = self._activate_type_a_with_response(ISO14443InitCommand.WupA)
+		if not response:
+			return (None, 0)
+		
+		atqa, sak, uid_bytes = response
+		
+		# Check for invalid responses
+		if atqa == [0xFF, 0xFF]:
+			return (None, 0)
+		
+		# Check for invalid UIDs (all zeros or all FFs)
+		if all(b == 0x00 for b in uid_bytes) or all(b == 0xFF for b in uid_bytes):
+			return (None, 0)
+		
+		self.mifare_halt()
+		return (uid_bytes, len(uid_bytes))
+
+	def _activate_type_a_with_response(self, kind: ISO14443InitCommand) -> tuple:
+		"""
+		Internal method to activate Type A card and return full response
+		Returns tuple: (atqa, sak, uid_bytes) or None if failed
+		"""
+		self.disable_crypto()
+		self.disable_crc()
+		self.clear_IRQ_STATUS()  # Clears the interrupt register IRQ_STATUS
+
+		#Send REQA/WUPA
+		self.send_data([kind.value], 0x07)
+
+		buff = self.read_data(2)
+		print(buff)
+		
+		print(self.get_irq_status())
+
+		self.disable_crc()
+
+		self.send_data([0x93, 0x20], 0x00)
+
+		buff2 = self.read_data(5)
+
+		self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
+		self.write_register_with_or_mask(CRC_TX_CONFIG, 0x01)
+		
+		self.send_data([0x93, 0x70]+buff2,0x00)
+
+		buff = buff + self.read_data(1)
+		print(buff)
+		print(buff2)
+		return (buff[0], buff[2], buff2[:-1])
+
+	def is_card_present(self) -> bool:
+		"""
+		Check if a card is present
+		Returns True if a valid card with UID >= 4 bytes is detected
+		"""
+		uid_bytes, uid_length = self.read_card_serial()
+		return uid_length >= 4

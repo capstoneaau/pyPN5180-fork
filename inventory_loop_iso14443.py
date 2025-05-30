@@ -9,7 +9,8 @@ if __name__ == '__main__':
     debug = True if check_debug == '-v' else False
 
     reader = ISO14443(debug=True)
-    reader.activate_type_A(kind=definitions.ISO14443InitCommand.WupA)
+    print(reader.read_card_serial())
+    print(reader.mifare_block_read(blockno=0))
     '''
     while True:
         cards = reader.inventory()
