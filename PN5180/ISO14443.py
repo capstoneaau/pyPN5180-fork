@@ -9,11 +9,16 @@ class ISO14443(AbstractPN5180):
 		self.rf_on()
 		print(self.get_irq_status())
 	
-	def activate_type_a(self, kind: ISO14443InitCommand) -> tuple:
+	def activate_type_a(self, kind: ISO14443InitCommand) -> dict:
 		"""
 		Internal method to activate Type A card and return full response
-		Returns tuple: (atqa, sak, uid_bytes) or None if failed
+		Returns dict containing necessary data
+		TODO:
+			- Error checking
+			- Refactor clear and enable CRC's RX and TX methods 
 		"""
+		uid_length = 0
+
 		self.disable_crypto()
 		self.disable_crc()
 		self.clear_IRQ_STATUS()  # Clears the interrupt register IRQ_STATUS
@@ -38,9 +43,28 @@ class ISO14443(AbstractPN5180):
 		self.send_data([0x93, 0x70]+buff2,0x00)
 
 		buff = buff + self.read_data(1)
-print(buff)
+		print(buff)
 		print(buff2)
-		return (buff[0], buff[2], buff2[:-1])
+
+		if (buff[2] & 0x04) == 0:
+			buff = buff + buff2
+			uid_length = 4
+		else:
+			if buff2[0] != 0x88:
+				raise Exception("err comparing uid buffer")
+			buff = buff + buff2[1:]
+			self.write_register_with_and_mask(CRC_RX_CONFIG, 0xFFFFFFFE)
+			self.write_register_with_and_mask(CRC_TX_CONFIG, 0xFFFFFFFE)
+			self.send_data([0x95, 0x20], 0x00)
+			buff3 = self.read_data(5)
+			buff3 = buff3 + buff
+			self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
+			self.write_register_with_or_mask(CRC_TX_CONFIG, 0x01)
+			self.send_data([0x95, 0x70]+buff3,0x00)
+			sak = self.read_data(1)
+			uid_length = 7
+
+		return {"atqa": buff[0], "sak": buff[2], "uid": buff2[:-1], "uid_length": uid_length}
 
 	def rx_bytes_received(self) -> int:
 		"""
@@ -50,6 +74,10 @@ print(buff)
 		# Lower 9 bits contain the length
 		length = rx_status & 0x000001ff
 		return length
+
+	def mifare_authenticate(self, key, key_type, blockno, uid) -> int:
+
+		return 0x0
 
 	def mifare_block_read(self, blockno: int) -> list:
 		"""
@@ -112,7 +140,7 @@ print(buff)
 		Returns tuple: (uid_bytes, uid_length) or (None, 0) if no valid card
 		"""
 		# Use WUPA (wake up) command
-		uid_length = self.activate_type_a(ISO14443InitCommand.WupA)
+		uid_length = self.activate_type_a(ISO14443InitCommand.WupA)["uid_length"]
 		
 		if uid_length == 0:
 			return (None, 0)
@@ -122,11 +150,11 @@ print(buff)
 		# we'll need to re-implement the activation to capture the UID
 		self.mifare_halt()
 		
-		response = self._activate_type_a_with_response(ISO14443InitCommand.WupA)
+		response = self.activate_type_a(ISO14443InitCommand.WupA)
 		if not response:
 			return (None, 0)
 		
-		atqa, sak, uid_bytes = response
+		atqa, sak, uid_bytes = list(response.values())[:3]
 		
 		# Check for invalid responses
 		if atqa == [0xFF, 0xFF]:
@@ -138,39 +166,6 @@ print(buff)
 		
 		self.mifare_halt()
 		return (uid_bytes, len(uid_bytes))
-
-	def _activate_type_a_with_response(self, kind: ISO14443InitCommand) -> tuple:
-		"""
-		Internal method to activate Type A card and return full response
-		Returns tuple: (atqa, sak, uid_bytes) or None if failed
-		"""
-		self.disable_crypto()
-		self.disable_crc()
-		self.clear_IRQ_STATUS()  # Clears the interrupt register IRQ_STATUS
-
-		#Send REQA/WUPA
-		self.send_data([kind.value], 0x07)
-
-		buff = self.read_data(2)
-		print(buff)
-		
-		print(self.get_irq_status())
-
-		self.disable_crc()
-
-		self.send_data([0x93, 0x20], 0x00)
-
-		buff2 = self.read_data(5)
-
-		self.write_register_with_or_mask(CRC_RX_CONFIG, 0x01)
-		self.write_register_with_or_mask(CRC_TX_CONFIG, 0x01)
-		
-		self.send_data([0x93, 0x70]+buff2,0x00)
-
-		buff = buff + self.read_data(1)
-		print(buff)
-		print(buff2)
-		return (buff[0], buff[2], buff2[:-1])
 
 	def is_card_present(self) -> bool:
 		"""
